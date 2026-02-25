@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import {
   Instagram,
@@ -510,7 +510,6 @@ const AdminDashboard: React.FC<{
 
       <div className="glass-card" style={{ marginBottom: '2.5rem' }}>
         <h3 style={{ fontSize: '1.2rem', fontWeight: 500, marginBottom: '2rem', fontFamily: 'Outfit, sans-serif' }}>Editar Perfil</h3>
-
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
           <div className="admin-avatar-container">
             {localProfile.avatar ? (
@@ -593,26 +592,28 @@ const AdminDashboard: React.FC<{
 
         <div className="analytics-header">
           <h3 style={{ fontSize: '1.2rem', fontWeight: 500, fontFamily: 'Outfit, sans-serif' }}>Estatísticas de Cliques</h3>
-          <div className="range-selector">
-            {(['today', '7d', '14d', '30d'] as const).map(r => (
-              <button
-                key={r}
-                className={`range-btn ${timeRange === r ? 'active' : ''}`}
-                onClick={() => setTimeRange(r)}
-              >
-                {r === 'today' ? 'Hoje' : r}
-              </button>
-            ))}
-            <div className="calendar-input-wrapper">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setTimeRange('custom');
-                }}
-                className={`calendar-input ${timeRange === 'custom' ? 'active' : ''}`}
-              />
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="range-selector">
+              {(['today', '7d', '14d', '30d'] as const).map(r => (
+                <button
+                  key={r}
+                  className={`range-btn ${timeRange === r ? 'active' : ''}`}
+                  onClick={() => setTimeRange(r)}
+                >
+                  {r === 'today' ? 'Hoje' : r}
+                </button>
+              ))}
+              <div className="calendar-input-wrapper">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setTimeRange('custom');
+                  }}
+                  className={`calendar-input ${timeRange === 'custom' ? 'active' : ''}`}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -639,15 +640,17 @@ const AdminDashboard: React.FC<{
                 <div className="mini-icon">{ICON_MAP[link.icon]}</div>
                 <span className="link-title">{link.title}</span>
               </div>
-              <div className="link-count">
-                <strong>{link.periodClicks}</strong>
-                <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '4px' }}> cliques</span>
-              </div>
-              <div className="progress-bar-bg">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: `${stats.total > 0 ? (link.periodClicks / stats.total) * 100 : 0}%` }}
-                />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="link-count">
+                  <strong>{link.periodClicks}</strong>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '4px' }}> cliques</span>
+                </div>
+                <div className="progress-bar-bg">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${stats.total > 0 ? (link.periodClicks / stats.total) * 100 : 0}%` }}
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -768,17 +771,17 @@ const App: React.FC = () => {
   };
 
   const handleSaveLink = (linkData: Partial<LinkItem>) => {
-    if (linkData.id) {
-      setLinks(prev => prev.map(l => l.id === linkData.id ? { ...l, ...linkData } as LinkItem : l));
+    if (editingLink?.id) {
+      setLinks(links.map(l => l.id === editingLink.id ? { ...l, ...linkData } as LinkItem : l));
     } else {
       const newLink: LinkItem = {
         id: Date.now().toString(),
-        title: linkData.title || 'Novo Link',
-        url: linkData.url || '#',
-        clicks: 0,
-        icon: linkData.icon || 'ExternalLink'
+        title: linkData.title || '',
+        url: linkData.url || '',
+        icon: linkData.icon || 'ExternalLink',
+        clicks: 0
       };
-      setLinks(prev => [...prev, newLink]);
+      setLinks([...links, newLink]);
     }
     setEditingLink(null);
   };
