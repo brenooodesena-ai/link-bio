@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --gold: #EEBD2B;
+  --gold-muted: rgba(238, 189, 43, 0.2);
+  --charcoal: #121212;
+  --matte-black: #0A0A0A;
+  --pearl: #F8F9FA;
+  --glass-dark: rgba(255, 255, 255, 0.03);
+  --glass-light: rgba(0, 0, 0, 0.03);
+  --border-gold: rgba(238, 189, 43, 0.3);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme='light'] {
+  --charcoal: #F8F9FA;
+  --matte-black: #FFFFFF;
+  --text-primary: #121212;
+  --text-secondary: rgba(0, 0, 0, 0.6);
+  --glass-dark: rgba(0, 0, 0, 0.03);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--matte-black);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-x: hidden;
+  transition: background-color var(--transition);
+}
+
+h1, h2, h3, .font-premium {
+  font-family: 'Outfit', sans-serif;
+}
+
+.premium-container {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Glassmorphism Effect */
+.glass-card {
+  background: var(--glass-dark);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 1.5rem;
+  width: 100%;
+  transition: var(--transition);
+}
+
+.glass-card:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-2px);
+}
+
+/* Luxury Buttons */
+.luxury-button {
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--matte-black);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: var(--transition);
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.luxury-button:hover {
+  border-color: var(--gold);
+  background: rgba(238, 189, 43, 0.05);
+  transform: scale(1.02);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.luxury-button i {
+  color: var(--gold);
+  font-size: 0.9rem;
+}
+
+/* Analytics Cards */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.analytics-card {
+  padding: 1.25rem;
+  border-radius: 18px;
+  background: var(--glass-dark);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.analytics-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gold);
+  font-family: 'Outfit', sans-serif;
+  margin-bottom: 0.25rem;
+}
+
+.analytics-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+}
+
+/* Avatar Styling */
+.avatar-wrapper {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.avatar-main {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--gold);
+  padding: 4px;
+}
+
+.admin-toggle {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--gold);
+  color: var(--matte-black);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(238, 189, 43, 0.3);
+  z-index: 100;
+  transition: var(--transition);
+}
+
+.admin-toggle:hover {
+  transform: rotate(90deg) scale(1.1);
+}
