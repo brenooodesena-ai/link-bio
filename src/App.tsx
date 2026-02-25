@@ -733,6 +733,8 @@ const App: React.FC = () => {
     let activeUnsubs: (() => void)[] = [];
 
     const initializeAndSync = async () => {
+      let isInitialSync = true; // Flag local para evitar problemas de closure do React state
+
       try {
         console.log("Checando inicialização do banco de dados...");
         const profileDoc = await getDoc(doc(db, 'config', 'profile'));
@@ -778,10 +780,10 @@ const App: React.FC = () => {
         activeUnsubs.push(unsubProfile);
 
         const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
-          if (snapshot.empty && !loading) {
-            // Se estiver vazio e não for o carregamento inicial, cria o link de teste
+          if (snapshot.empty && !isInitialSync) {
+            console.log("Detectado lista vazia. Criando link de TESTE...");
             const testLink = {
-              id: 'teste-' + Date.now(),
+              id: 'link-default-teste', // ID fixo para evitar duplicatas
               title: 'TESTE',
               url: '',
               icon: 'ExternalLink',
@@ -792,6 +794,7 @@ const App: React.FC = () => {
             const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
             setLinks(firestoreLinks);
             setLoading(false);
+            isInitialSync = false; // Pronto, agora qualquer deleção total criará o "TESTE"
             console.log(`Links atualizados: ${firestoreLinks.length} documentos.`);
           }
         });
