@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp, doc, setDoc, onSnapshot, deleteDoc, orderBy } from 'firebase/firestore';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import {
   Instagram,
@@ -720,36 +720,54 @@ const AdminDashboard: React.FC<{
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [editingLink, setEditingLink] = useState<Partial<LinkItem> | null>(null);
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem('profile');
-    return saved ? JSON.parse(saved) : {
-      name: 'Alex Rivera',
-      bio: 'Digital Creator & UX Designer',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop'
-    };
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState({
+    name: 'Alex Rivera',
+    bio: 'Digital Creator & UX Designer',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop'
   });
+  const [links, setLinks] = useState<LinkItem[]>([]);
 
-  const [links, setLinks] = useState<LinkItem[]>(() => {
-    const saved = localStorage.getItem('links');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', title: 'Instagram', url: 'https://instagram.com', clicks: 854, icon: 'Instagram' },
-      { id: '2', title: 'Twitter / X', url: 'https://twitter.com', clicks: 1205, icon: 'Twitter' },
-      { id: '3', title: 'Portfolio Website', url: '#', clicks: 3420, icon: 'ExternalLink' },
-      { id: '4', title: 'Latest YouTube Video', url: 'https://youtube.com', clicks: 521, icon: 'Youtube' }
-    ];
-  });
+  // Carregar dados iniciais do Firestore
+  useEffect(() => {
+    const unsubProfile = onSnapshot(doc(db, 'config', 'profile'), (snapshot) => {
+      if (snapshot.exists()) {
+        setProfile(snapshot.data() as any);
+      } else {
+        // Se não houver perfil no Firebase, tentar migrar do localStorage ou usar padrão
+        const saved = localStorage.getItem('profile');
+        const initialProfile = saved ? JSON.parse(saved) : profile;
+        setDoc(doc(db, 'config', 'profile'), initialProfile);
+      }
+    });
+
+    const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
+      if (!snapshot.empty) {
+        const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
+        setLinks(firestoreLinks);
+      } else {
+        // Se não houver links no Firebase, migrar do localStorage ou usar padrão
+        const saved = localStorage.getItem('links');
+        const initialLinks = saved ? JSON.parse(saved) : [
+          { id: '1', title: 'Instagram', url: 'https://instagram.com', clicks: 854, icon: 'Instagram' },
+          { id: '2', title: 'Twitter / X', url: 'https://twitter.com', clicks: 1205, icon: 'Twitter' },
+          { id: '3', title: 'Portfolio Website', url: '#', clicks: 3420, icon: 'ExternalLink' },
+          { id: '4', title: 'Latest YouTube Video', url: 'https://youtube.com', clicks: 521, icon: 'Youtube' }
+        ];
+        initialLinks.forEach((l: LinkItem) => setDoc(doc(db, 'links', l.id), l));
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      unsubProfile();
+      unsubLinks();
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem('profile', JSON.stringify(profile));
-  }, [profile]);
-
-  useEffect(() => {
-    localStorage.setItem('links', JSON.stringify(links));
-  }, [links]);
 
   const handleLinkClick = async (id: string) => {
     // 1. Update local counter (optimistic)
@@ -770,29 +788,58 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSaveLink = (linkData: Partial<LinkItem>) => {
-    if (editingLink?.id) {
-      setLinks(links.map(l => l.id === editingLink.id ? { ...l, ...linkData } as LinkItem : l));
-    } else {
-      const newLink: LinkItem = {
-        id: Date.now().toString(),
-        title: linkData.title || '',
-        url: linkData.url || '',
-        icon: linkData.icon || 'ExternalLink',
-        clicks: 0
-      };
-      setLinks([...links, newLink]);
+  const handleUpdateProfile = async (newProfile: any) => {
+    try {
+      await setDoc(doc(db, 'config', 'profile'), newProfile);
+      setProfile(newProfile);
+    } catch (e) {
+      console.error("Erro ao atualizar perfil:", e);
+      alert('Erro ao salvar no banco de dados.');
     }
-    setEditingLink(null);
   };
 
-  const handleDeleteLink = (id: string) => {
+  const handleSaveLink = async (linkData: Partial<LinkItem>) => {
+    const linkId = editingLink?.id || Date.now().toString();
+    const finalLink = {
+      id: linkId,
+      title: linkData.title || '',
+      url: linkData.url || '',
+      icon: linkData.icon || 'ExternalLink',
+      clicks: linkData.clicks || 0
+    };
+
+    try {
+      await setDoc(doc(db, 'links', linkId), finalLink);
+      setEditingLink(null);
+    } catch (e) {
+      console.error("Erro ao salvar link:", e);
+      alert('Erro ao salvar no banco de dados.');
+    }
+  };
+
+  const handleDeleteLink = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este link?')) {
-      setLinks(prev => prev.filter(l => l.id !== id));
+      try {
+        await deleteDoc(doc(db, 'links', id));
+      } catch (e) {
+        console.error("Erro ao excluir link:", e);
+        alert('Erro ao excluir do banco de dados.');
+      }
     }
   };
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  if (loading) {
+    return (
+      <div className="premium-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="mini-icon" style={{ width: '40px', height: '40px', margin: '0 auto 1.5rem', border: '3px solid var(--accent-white)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <p style={{ opacity: 0.5, letterSpacing: '2px', fontSize: '0.8rem' }}>CARREGANDO...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -814,7 +861,7 @@ const App: React.FC = () => {
               <AdminDashboard
                 links={links}
                 profile={profile}
-                onUpdateProfile={setProfile}
+                onUpdateProfile={handleUpdateProfile}
                 onAddLink={() => setEditingLink({})}
                 onEditLink={setEditingLink}
                 onDeleteLink={handleDeleteLink}
