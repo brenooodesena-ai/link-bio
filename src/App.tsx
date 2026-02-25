@@ -730,55 +730,71 @@ const App: React.FC = () => {
 
   // Carregar dados iniciais do Firestore
   useEffect(() => {
+    let activeUnsubs: (() => void)[] = [];
+
     const initializeAndSync = async () => {
-      // 1. Verificar se o sistema já foi inicializado no Firestore
-      const profileDoc = await getDoc(doc(db, 'config', 'profile'));
+      try {
+        console.log("Checando inicialização do banco de dados...");
+        const profileDoc = await getDoc(doc(db, 'config', 'profile'));
 
-      if (!profileDoc.exists()) {
-        console.log("Inicializando banco de dados pela primeira vez...");
+        if (!profileDoc.exists()) {
+          console.log("Banco de dados não encontrado. Iniciando migração/seed...");
 
-        // Mudar Profile
-        const savedProfile = localStorage.getItem('profile');
-        const initialProfile = savedProfile ? JSON.parse(savedProfile) : profile;
-        await setDoc(doc(db, 'config', 'profile'), initialProfile);
+          // 1. Definir Perfil Inicial
+          const savedProfile = localStorage.getItem('profile');
+          const initialProfile = savedProfile ? JSON.parse(savedProfile) : profile;
+          await setDoc(doc(db, 'config', 'profile'), initialProfile);
 
-        // Migrar Links
-        const savedLinks = localStorage.getItem('links');
-        const initialLinks = savedLinks ? JSON.parse(savedLinks) : [
-          { id: '1', title: 'Instagram', url: 'https://instagram.com', clicks: 854, icon: 'Instagram' },
-          { id: '2', title: 'Twitter / X', url: 'https://twitter.com', clicks: 1205, icon: 'Twitter' },
-          { id: '3', title: 'Portfolio Website', url: '#', clicks: 3420, icon: 'ExternalLink' },
-          { id: '4', title: 'Latest YouTube Video', url: 'https://youtube.com', clicks: 521, icon: 'Youtube' }
-        ];
+          // 2. Definir Links Iniciais (Migração ou Padrão)
+          const savedLinks = localStorage.getItem('links');
+          const initialLinks = savedLinks ? JSON.parse(savedLinks) : [
+            { id: '1', title: 'Instagram', url: 'https://instagram.com', clicks: 854, icon: 'Instagram' },
+            { id: '2', title: 'Twitter / X', url: 'https://twitter.com', clicks: 1205, icon: 'Twitter' },
+            { id: '3', title: 'Portfolio Website', url: '#', clicks: 3420, icon: 'ExternalLink' },
+            { id: '4', title: 'Latest YouTube Video', url: 'https://youtube.com', clicks: 521, icon: 'Youtube' }
+          ];
 
-        for (const l of initialLinks) {
-          await setDoc(doc(db, 'links', l.id), l);
+          for (const l of initialLinks) {
+            await setDoc(doc(db, 'links', l.id), l);
+          }
+
+          // 3. LIMPAR LOCALSTORAGE para evitar re-seeding acidental
+          localStorage.removeItem('profile');
+          localStorage.removeItem('links');
+          console.log("Migração concluída e localStorage limpo.");
+        } else {
+          console.log("Banco de dados já inicializado.");
+          // Opcional: Limpar localStorage mesmo se já inicializado no Firebase
+          localStorage.removeItem('profile');
+          localStorage.removeItem('links');
         }
+
+        // 4. Iniciar Listeners em tempo real
+        const unsubProfile = onSnapshot(doc(db, 'config', 'profile'), (snapshot) => {
+          if (snapshot.exists()) {
+            setProfile(snapshot.data() as any);
+          }
+        });
+        activeUnsubs.push(unsubProfile);
+
+        const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
+          const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
+          setLinks(firestoreLinks);
+          setLoading(false);
+          console.log(`Links atualizados: ${firestoreLinks.length} documentos.`);
+        });
+        activeUnsubs.push(unsubLinks);
+
+      } catch (error) {
+        console.error("Erro crítico na inicialização do Firebase:", error);
+        setLoading(false); // Liberar a tela mesmo com erro para não travar o usuário
       }
-
-      // 2. Iniciar Listeners em tempo real (Sem lógica de preenchimento automático)
-      const unsubProfile = onSnapshot(doc(db, 'config', 'profile'), (snapshot) => {
-        if (snapshot.exists()) {
-          setProfile(snapshot.data() as any);
-        }
-      });
-
-      const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
-        const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
-        setLinks(firestoreLinks);
-        setLoading(false);
-      });
-
-      return () => {
-        unsubProfile();
-        unsubLinks();
-      };
     };
 
-    const cleanupPromise = initializeAndSync();
+    initializeAndSync();
 
     return () => {
-      cleanupPromise.then(cleanup => cleanup && cleanup());
+      activeUnsubs.forEach(unsub => unsub());
     };
   }, []);
 
