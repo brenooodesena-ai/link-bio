@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp, doc, setDoc, onSnapshot, deleteDoc, orderBy } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp, doc, setDoc, getDoc, onSnapshot, deleteDoc, orderBy } from 'firebase/firestore';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import {
   Instagram,
@@ -730,38 +730,55 @@ const App: React.FC = () => {
 
   // Carregar dados iniciais do Firestore
   useEffect(() => {
-    const unsubProfile = onSnapshot(doc(db, 'config', 'profile'), (snapshot) => {
-      if (snapshot.exists()) {
-        setProfile(snapshot.data() as any);
-      } else {
-        // Se não houver perfil no Firebase, tentar migrar do localStorage ou usar padrão
-        const saved = localStorage.getItem('profile');
-        const initialProfile = saved ? JSON.parse(saved) : profile;
-        setDoc(doc(db, 'config', 'profile'), initialProfile);
-      }
-    });
+    const initializeAndSync = async () => {
+      // 1. Verificar se o sistema já foi inicializado no Firestore
+      const profileDoc = await getDoc(doc(db, 'config', 'profile'));
 
-    const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
-      if (!snapshot.empty) {
-        const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
-        setLinks(firestoreLinks);
-      } else {
-        // Se não houver links no Firebase, migrar do localStorage ou usar padrão
-        const saved = localStorage.getItem('links');
-        const initialLinks = saved ? JSON.parse(saved) : [
+      if (!profileDoc.exists()) {
+        console.log("Inicializando banco de dados pela primeira vez...");
+
+        // Mudar Profile
+        const savedProfile = localStorage.getItem('profile');
+        const initialProfile = savedProfile ? JSON.parse(savedProfile) : profile;
+        await setDoc(doc(db, 'config', 'profile'), initialProfile);
+
+        // Migrar Links
+        const savedLinks = localStorage.getItem('links');
+        const initialLinks = savedLinks ? JSON.parse(savedLinks) : [
           { id: '1', title: 'Instagram', url: 'https://instagram.com', clicks: 854, icon: 'Instagram' },
           { id: '2', title: 'Twitter / X', url: 'https://twitter.com', clicks: 1205, icon: 'Twitter' },
           { id: '3', title: 'Portfolio Website', url: '#', clicks: 3420, icon: 'ExternalLink' },
           { id: '4', title: 'Latest YouTube Video', url: 'https://youtube.com', clicks: 521, icon: 'Youtube' }
         ];
-        initialLinks.forEach((l: LinkItem) => setDoc(doc(db, 'links', l.id), l));
+
+        for (const l of initialLinks) {
+          await setDoc(doc(db, 'links', l.id), l);
+        }
       }
-      setLoading(false);
-    });
+
+      // 2. Iniciar Listeners em tempo real (Sem lógica de preenchimento automático)
+      const unsubProfile = onSnapshot(doc(db, 'config', 'profile'), (snapshot) => {
+        if (snapshot.exists()) {
+          setProfile(snapshot.data() as any);
+        }
+      });
+
+      const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
+        const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
+        setLinks(firestoreLinks);
+        setLoading(false);
+      });
+
+      return () => {
+        unsubProfile();
+        unsubLinks();
+      };
+    };
+
+    const cleanupPromise = initializeAndSync();
 
     return () => {
-      unsubProfile();
-      unsubLinks();
+      cleanupPromise.then(cleanup => cleanup && cleanup());
     };
   }, []);
 
