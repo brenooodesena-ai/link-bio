@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --gold: #EEBD2B;
-  --gold-muted: rgba(238, 189, 43, 0.2);
+  --accent-white: #FFFFFF;
+  --accent-glow: rgba(255, 255, 255, 0.4);
   --charcoal: #121212;
   --matte-black: #0A0A0A;
   --pearl: #F8F9FA;
-  --glass-dark: rgba(255, 255, 255, 0.03);
-  --glass-light: rgba(0, 0, 0, 0.03);
-  --border-gold: rgba(238, 189, 43, 0.3);
+  --glass-dark: rgba(255, 255, 255, 0.04);
+  --glass-light: rgba(0, 0, 0, 0.04);
+  --border-white: rgba(255, 255, 255, 0.15);
   --text-primary: #FFFFFF;
   --text-secondary: rgba(255, 255, 255, 0.6);
   --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -20,6 +20,8 @@
   --text-primary: #121212;
   --text-secondary: rgba(0, 0, 0, 0.6);
   --glass-dark: rgba(0, 0, 0, 0.03);
+  --accent-white: #121212;
+  --accent-glow: rgba(0, 0, 0, 0.2);
 }
 
 * {
@@ -38,7 +40,10 @@ body {
   transition: background-color var(--transition);
 }
 
-h1, h2, h3, .font-premium {
+h1,
+h2,
+h3,
+.font-premium {
   font-family: 'Outfit', sans-serif;
 }
 
@@ -46,7 +51,7 @@ h1, h2, h3, .font-premium {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
-  padding: 2rem 1.5rem;
+  padding: 3rem 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -55,30 +60,31 @@ h1, h2, h3, .font-premium {
 /* Glassmorphism Effect */
 .glass-card {
   background: var(--glass-dark);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 1.5rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 1.75rem;
   width: 100%;
   transition: var(--transition);
 }
 
 .glass-card:hover {
-  border-color: var(--border-gold);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* Luxury Buttons */
 .luxury-button {
   width: 100%;
-  padding: 1.25rem;
-  background: var(--matte-black);
+  padding: 1.35rem;
+  background: var(--glass-dark);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 20px;
   color: var(--text-primary);
   font-family: 'Outfit', sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 500;
   text-decoration: none;
   display: flex;
@@ -86,85 +92,85 @@ h1, h2, h3, .font-premium {
   justify-content: space-between;
   transition: var(--transition);
   cursor: pointer;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .luxury-button:hover {
-  border-color: var(--gold);
-  background: rgba(238, 189, 43, 0.05);
+  border-color: var(--accent-white);
+  background: rgba(255, 255, 255, 0.08);
   transform: scale(1.02);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-.luxury-button i {
-  color: var(--gold);
-  font-size: 0.9rem;
+.luxury-button i,
+.luxury-button .icon {
+  color: var(--accent-white);
+  opacity: 0.9;
 }
 
 /* Analytics Cards */
 .analytics-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  gap: 1.25rem;
   width: 100%;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .analytics-card {
-  padding: 1.25rem;
-  border-radius: 18px;
+  padding: 1.5rem;
+  border-radius: 22px;
   background: var(--glass-dark);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
 }
 
 .analytics-value {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--accent-white);
   font-family: 'Outfit', sans-serif;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.3rem;
 }
 
 .analytics-label {
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   color: var(--text-secondary);
 }
 
 /* Avatar Styling */
 .avatar-wrapper {
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .avatar-main {
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid var(--gold);
-  padding: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  padding: 0;
+  /* Removed padding and golden ring effect */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
-.admin-toggle {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: var(--gold);
-  color: var(--matte-black);
-  width: 50px;
-  height: 50px;
+.theme-btn {
+  background: var(--glass-dark);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  padding: 0.75rem;
   border-radius: 50%;
+  cursor: pointer;
+  transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 10px 20px rgba(238, 189, 43, 0.3);
-  z-index: 100;
-  transition: var(--transition);
 }
 
-.admin-toggle:hover {
-  transform: rotate(90deg) scale(1.1);
+.theme-btn:hover {
+  background: var(--glass-light);
+  border-color: var(--accent-white);
 }
