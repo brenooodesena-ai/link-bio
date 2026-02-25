@@ -778,10 +778,22 @@ const App: React.FC = () => {
         activeUnsubs.push(unsubProfile);
 
         const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
-          const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
-          setLinks(firestoreLinks);
-          setLoading(false);
-          console.log(`Links atualizados: ${firestoreLinks.length} documentos.`);
+          if (snapshot.empty && !loading) {
+            // Se estiver vazio e não for o carregamento inicial, cria o link de teste
+            const testLink = {
+              id: 'teste-' + Date.now(),
+              title: 'TESTE',
+              url: '',
+              icon: 'ExternalLink',
+              clicks: 0
+            };
+            setDoc(doc(db, 'links', testLink.id), testLink);
+          } else {
+            const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
+            setLinks(firestoreLinks);
+            setLoading(false);
+            console.log(`Links atualizados: ${firestoreLinks.length} documentos.`);
+          }
         });
         activeUnsubs.push(unsubLinks);
 
