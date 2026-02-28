@@ -121,6 +121,7 @@ interface LinkItem {
   url: string;
   clicks: number;
   icon: string;
+  order: number;
 }
 
 // --- COMPONENTS ---
@@ -236,6 +237,7 @@ const PhotoEditor: React.FC<{
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imgDim, setImgDim] = useState({ width: 'auto', height: 'auto' });
   const containerRef = React.useRef<HTMLDivElement>(null);
   const imgRef = React.useRef<HTMLImageElement>(null);
 
@@ -305,13 +307,19 @@ const PhotoEditor: React.FC<{
             src={image}
             alt="To crop"
             draggable={false}
-            onLoad={() => {
+            onLoad={(e) => {
               setPosition({ x: 0, y: 0 });
               setZoom(1);
+              const { naturalWidth, naturalHeight } = e.currentTarget;
+              if (naturalWidth > naturalHeight) {
+                setImgDim({ width: 'auto', height: '100%' });
+              } else {
+                setImgDim({ width: '100%', height: 'auto' });
+              }
             }}
             style={{
-              width: 'auto',
-              height: 'auto',
+              width: imgDim.width,
+              height: imgDim.height,
               maxWidth: 'none',
               minWidth: '100%',
               minHeight: '100%',
@@ -372,8 +380,8 @@ const PublicProfile: React.FC<{ links: LinkItem[], profile: any, onLinkClick: (i
         </div>
       )}
     </div>
-    <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.6rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
-    <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
+    <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.1rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
+    <p style={{ color: 'var(--text-secondary)', marginBottom: '2.2rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
 
     <div style={{ width: '100%' }}>
       {links.map((link) => (
@@ -407,9 +415,10 @@ const AdminDashboard: React.FC<{
   onAddLink: () => void,
   onEditLink: (link: LinkItem) => void,
   onDeleteLink: (id: string) => void,
+  onMoveLink: (id: string, direction: 'up' | 'down') => void,
   theme: 'dark' | 'light',
   toggleTheme: () => void
-}> = ({ links, profile, onUpdateProfile, onAddLink, onEditLink, onDeleteLink, theme, toggleTheme }) => {
+}> = ({ links, profile, onUpdateProfile, onAddLink, onEditLink, onDeleteLink, onMoveLink, theme, toggleTheme }) => {
   const [localProfile, setLocalProfile] = useState(profile);
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -627,7 +636,7 @@ const AdminDashboard: React.FC<{
             <div className="analytics-value" style={{ fontSize: '1.4rem' }}>{stats.peakHour}</div>
             <div className="analytics-label">Horário mais Quente</div>
           </div>
-          <div className="analytics-card">
+          <div className="analytics-card" style={{ padding: '1rem' }}>
             <div className="analytics-value">{links.reduce((acc, l) => acc + l.clicks, 0).toLocaleString()}</div>
             <div className="analytics-label">Total Histórico</div>
           </div>
@@ -685,27 +694,41 @@ const AdminDashboard: React.FC<{
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {links.map((link) => (
             <div key={link.id} className="admin-link-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+              <div className="admin-link-info">
                 <div className="admin-link-icon">
                   {ICON_MAP[link.icon] || ICON_MAP['ExternalLink']}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.1rem' }}>{link.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.url}</div>
+                <div className="admin-link-text">
+                  <div className="admin-link-title">{link.title}</div>
+                  <div className="admin-link-url">{link.url}</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ textAlign: 'right', marginRight: '1rem' }}>
-                  <div style={{ color: 'var(--accent-white)', fontWeight: 700, fontSize: '1.1rem' }}>{link.clicks}</div>
-                  <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>CLIQUES</div>
+              <div className="admin-link-actions-wrapper">
+                <div className="admin-reorder-group">
+                  <button onClick={() => onMoveLink(link.id, 'up')} className="action-btn mini" title="Subir">
+                    <ChevronRight size={14} style={{ transform: 'rotate(-90deg)' }} />
+                  </button>
+                  <button onClick={() => onMoveLink(link.id, 'down')} className="action-btn mini" title="Descer">
+                    <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
+                  </button>
                 </div>
-                <button onClick={() => onEditLink(link)} className="action-btn" title="Editar">
-                  <Pencil size={16} />
-                </button>
-                <button onClick={() => onDeleteLink(link.id)} className="action-btn delete" title="Excluir">
-                  <Trash2 size={16} />
-                </button>
+
+                <div className="admin-stats-group">
+                  <div className="link-count">
+                    <span className="count-value">{link.clicks}</span>
+                    <span className="count-label">CLIQUES</span>
+                  </div>
+                </div>
+
+                <div className="admin-buttons-group">
+                  <button onClick={() => onEditLink(link)} className="action-btn" title="Editar">
+                    <Pencil size={16} />
+                  </button>
+                  <button onClick={() => onDeleteLink(link.id)} className="action-btn delete" title="Excluir">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -779,7 +802,7 @@ const App: React.FC = () => {
         });
         activeUnsubs.push(unsubProfile);
 
-        const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
+        const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('order', 'asc')), (snapshot) => {
           if (snapshot.empty && !isInitialSync) {
             console.log("Detectado lista vazia. Criando link de TESTE...");
             const testLink = {
@@ -853,7 +876,8 @@ const App: React.FC = () => {
       title: linkData.title || '',
       url: linkData.url || '',
       icon: linkData.icon || 'ExternalLink',
-      clicks: linkData.clicks || 0
+      clicks: linkData.clicks || 0,
+      order: linkData.order ?? links.length
     };
 
     try {
@@ -873,6 +897,29 @@ const App: React.FC = () => {
         console.error("Erro ao excluir link:", e);
         alert('Erro ao excluir do banco de dados.');
       }
+    }
+  };
+
+  const handleMoveLink = async (id: string, direction: 'up' | 'down') => {
+    const currentIndex = links.findIndex(l => l.id === id);
+    if (currentIndex === -1) return;
+
+    if (direction === 'up' && currentIndex === 0) return;
+    if (direction === 'down' && currentIndex === links.length - 1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const currentLink = links[currentIndex];
+    const targetLink = links[targetIndex];
+
+    try {
+      // Swap order values in Firestore
+      const currentOrder = currentLink.order ?? currentIndex;
+      const targetOrder = targetLink.order ?? targetIndex;
+
+      await setDoc(doc(db, 'links', currentLink.id), { ...currentLink, order: targetOrder });
+      await setDoc(doc(db, 'links', targetLink.id), { ...targetLink, order: currentOrder });
+    } catch (e) {
+      console.error("Erro ao reordenar links:", e);
     }
   };
 
@@ -913,6 +960,7 @@ const App: React.FC = () => {
                 onAddLink={() => setEditingLink({})}
                 onEditLink={setEditingLink}
                 onDeleteLink={handleDeleteLink}
+                onMoveLink={handleMoveLink}
                 theme={theme}
                 toggleTheme={toggleTheme}
               />
