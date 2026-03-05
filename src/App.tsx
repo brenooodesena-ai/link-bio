@@ -369,44 +369,84 @@ const ThemeToggle: React.FC<{ theme: 'dark' | 'light', toggle: () => void }> = (
   </button>
 );
 
-const PublicProfile: React.FC<{ links: LinkItem[], profile: any, onLinkClick: (id: string) => void }> = ({ links, profile, onLinkClick }) => (
-  <div style={{ width: '100%', textAlign: 'center', marginTop: '2rem' }}>
-    <div className="avatar-wrapper">
-      {profile.avatar ? (
-        <img src={profile.avatar} alt={profile.name} className="avatar-main" />
-      ) : (
-        <div className="avatar-main" style={{ display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', background: 'var(--glass-dark)', border: '2px solid rgba(255,255,255,0.1)' }}>
-          <span style={{ fontSize: '2rem', fontWeight: 600 }}>{profile.name.charAt(0)}</span>
-        </div>
-      )}
-    </div>
-    <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.1rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
-    <p style={{ color: 'var(--text-secondary)', marginBottom: '2.2rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
+const PublicProfile: React.FC<{ links: LinkItem[], profile: any, onLinkClick: (id: string) => void }> = ({ links, profile, onLinkClick }) => {
+  const effectColor = profile.lightEffectColor;
 
-    <div style={{ width: '100%' }}>
-      {links.map((link) => (
-        <a
-          key={link.id}
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="luxury-button"
-          onClick={() => onLinkClick(link.id)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            {link.icon !== 'Nenhum' && (
-              <div className="icon">
-                {ICON_MAP[link.icon] || ICON_MAP['Link']}
-              </div>
-            )}
-            <span>{link.title}</span>
+  return (
+    <div style={{ width: '100%', textAlign: 'center', marginTop: '2rem', position: 'relative', zIndex: 1 }}>
+      {effectColor && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `radial-gradient(circle at top center, ${effectColor}30 0%, transparent 70%)`,
+            pointerEvents: 'none',
+            zIndex: -1,
+            transition: 'background 0.5s ease',
+          }}
+        />
+      )}
+      <div className="avatar-wrapper">
+        {profile.avatar ? (
+          <img
+            src={profile.avatar}
+            alt={profile.name}
+            className="avatar-main"
+            style={{
+              boxShadow: effectColor ? `0 0 50px ${effectColor}55, 0 0 20px ${effectColor}77` : undefined,
+              borderColor: effectColor ? `${effectColor}99` : undefined,
+              transition: 'box-shadow 0.5s ease, border-color 0.5s ease'
+            }}
+          />
+        ) : (
+          <div
+            className="avatar-main"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifySelf: 'center',
+              justifyContent: 'center',
+              background: 'var(--glass-dark)',
+              border: `2px solid ${effectColor ? effectColor + '99' : 'rgba(255,255,255,0.1)'}`,
+              boxShadow: effectColor ? `0 0 50px ${effectColor}55, 0 0 20px ${effectColor}77` : undefined,
+              transition: 'box-shadow 0.5s ease, border-color 0.5s ease'
+            }}
+          >
+            <span style={{ fontSize: '2rem', fontWeight: 600 }}>{profile.name.charAt(0)}</span>
           </div>
-          <ChevronRight size={18} style={{ opacity: 0.3 }} />
-        </a>
-      ))}
+        )}
+      </div>
+      <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.1rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: '2.2rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
+
+      <div style={{ width: '100%' }}>
+        {links.map((link) => (
+          <a
+            key={link.id}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="luxury-button"
+            onClick={() => onLinkClick(link.id)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+              {link.icon !== 'Nenhum' && (
+                <div className="icon">
+                  {ICON_MAP[link.icon] || ICON_MAP['Link']}
+                </div>
+              )}
+              <span>{link.title}</span>
+            </div>
+            <ChevronRight size={18} style={{ opacity: 0.3 }} />
+          </a>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AdminDashboard: React.FC<{
   links: LinkItem[],
@@ -559,6 +599,86 @@ const AdminDashboard: React.FC<{
                 className="glass-input"
                 rows={2}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', opacity: 0.6, marginBottom: '0.5rem' }}>EFEITO DE LUZ (FUNDO)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--glass-bg)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '0.95rem', marginBottom: '2px', fontWeight: 500, fontFamily: 'Outfit, sans-serif' }}>Aura de Destaque</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Adiciona um brilho colorido na foto e fundo.</p>
+                  </div>
+                  {localProfile.lightEffectColor ? (
+                    <button
+                      onClick={() => {
+                        const updated = { ...localProfile, lightEffectColor: '' };
+                        setLocalProfile(updated);
+                        onUpdateProfile(updated); // Autosave
+                      }}
+                      style={{
+                        background: 'rgba(255, 68, 68, 0.1)',
+                        color: '#ff4444',
+                        border: '1px solid rgba(255, 68, 68, 0.3)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        fontFamily: 'Outfit, sans-serif'
+                      }}
+                    >
+                      REMOVER
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        const updated = { ...localProfile, lightEffectColor: '#8b5cf6' };
+                        setLocalProfile(updated);
+                        onUpdateProfile(updated); // Autosave
+                      }}
+                      style={{
+                        background: 'var(--accent-white)',
+                        color: 'var(--matte-black)',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        fontFamily: 'Outfit, sans-serif'
+                      }}
+                    >
+                      ATIVAR
+                    </button>
+                  )}
+                </div>
+
+                {localProfile.lightEffectColor && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
+                    <span style={{ fontSize: '0.85rem' }}>Selecione a cor:</span>
+                    <input
+                      type="color"
+                      value={localProfile.lightEffectColor}
+                      onChange={(e) => setLocalProfile({ ...localProfile, lightEffectColor: e.target.value })}
+                      onBlur={() => onUpdateProfile(localProfile)}
+                      style={{
+                        width: '50px',
+                        height: '40px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: 'transparent',
+                        padding: 0
+                      }}
+                      title="Clique para escolher a cor"
+                    />
+                    <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: 'auto' }}>A cor salva ao fechar o seletor</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <button onClick={handleSave} className="save-btn" style={{ fontFamily: 'Outfit, sans-serif' }}>
@@ -747,7 +867,8 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState({
     name: 'Alex Rivera',
     bio: 'Digital Creator & UX Designer',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop'
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop',
+    lightEffectColor: ''
   });
   const [links, setLinks] = useState<LinkItem[]>([]);
 
