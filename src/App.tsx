@@ -31,7 +31,8 @@ import {
   MessageSquare,
   LifeBuoy,
   Music,
-  Disc
+  Disc,
+  Lock
 } from 'lucide-react';
 
 // --- CUSTOM ICONS ---
@@ -142,7 +143,7 @@ const PasscodeAuth: React.FC<{ onAuth: () => void }> = ({ onAuth }) => {
     <div className="premium-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
       <div className="glass-card" style={{ maxWidth: '360px', padding: '2.5rem', textAlign: 'center', animation: isError ? 'shake 0.4s ease' : 'none' }}>
         <div style={{ background: 'var(--glass-dark)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '1px solid var(--glass-border)' }}>
-          <Moon size={24} style={{ opacity: 0.5 }} />
+          <Lock size={24} style={{ opacity: 0.5 }} />
         </div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>Acesso Restrito</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>Digite a senha de administrador para continuar.</p>
