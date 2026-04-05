@@ -125,7 +125,7 @@ const PasscodeAuth: React.FC<{ onAuth: () => void }> = ({ onAuth }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Pequena demora para simular verificação e melhorar UX
     await new Promise(resolve => setTimeout(resolve, 600));
 
@@ -147,7 +147,7 @@ const PasscodeAuth: React.FC<{ onAuth: () => void }> = ({ onAuth }) => {
         </div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>Acesso Restrito</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>Digite a senha de administrador para continuar.</p>
-        
+
         <form onSubmit={handleSubmit}>
           <input
             type="password"
@@ -162,10 +162,10 @@ const PasscodeAuth: React.FC<{ onAuth: () => void }> = ({ onAuth }) => {
             {isLoading ? 'VERIFICANDO...' : 'ENTRAR NO PAINEL'}
           </button>
         </form>
-        
+
         {isError && <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '1rem', fontWeight: 500 }}>Senha incorreta. Tente novamente.</p>}
       </div>
-      
+
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
@@ -208,7 +208,7 @@ const LinkEditor: React.FC<{
       const pattern = new RegExp('^(https?:\\/\\/)' + // protocol
         '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
         '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
-        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+        '(\\:\\d+)?(\\/[-a-z\\d%_.~+@]*)*' + // port and path
         '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
         '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
       return !!pattern.test(url);
@@ -973,7 +973,7 @@ const App: React.FC = () => {
           .order('order', { ascending: true });
 
         if (linksError) throw linksError;
-        
+
         // Se o banco estiver vazio, podemos manter alguns links de exemplo ou deixar vazio conforme preferência.
         // Aqui vamos garantir que os links venham ordenados.
         setLinks(linksData || []);
@@ -1034,7 +1034,7 @@ const App: React.FC = () => {
         link_id: id,
         link_title: link?.title || 'Unknown'
       });
-      
+
       // Also update the link's click count in the links table
       await supabase.from('links').update({ clicks: (link?.clicks || 0) + 1 }).eq('id', id);
 
@@ -1110,7 +1110,7 @@ const App: React.FC = () => {
 
       const { error: err1 } = await supabase.from('links').update({ order: targetOrder }).eq('id', currentLink.id);
       const { error: err2 } = await supabase.from('links').update({ order: currentOrder }).eq('id', targetLink.id);
-      
+
       if (err1 || err2) throw (err1 || err2);
     } catch (e) {
       console.error("Erro ao reordenar links:", e);
