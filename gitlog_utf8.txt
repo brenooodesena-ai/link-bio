@@ -1,0 +1,13 @@
+﻿6238f54 feat: Adiciona configura├º├úo e efeito de luz na bio do perfil
+4b232dc Sua mensagem de atualiza├º├úo
+62f8bef fix: resolve closure bug in links listener and use fixed ID for placeholder
+95327c8 feat: automatically create 'TESTE' placeholder link when collection is empty
+4b2b2ba fix: enforce one-time database initialization and clear localStorage
+31f3676 fix: prevent deleted links from reappearing by decoupling initialization
+8ac25d7 fix: add vercel.json for SPA routing support
+02eedac feat: complete firestore migration for profile and links
+9b6f047 fix: repair file corruption and syntax error in App.tsx
+9a238bb feat: remove analytics reset button from admin dashboard
+1c59ead feat: implement individual link analytics and url validation with firebase
+68caa66 feat: White Premium aesthetic and secure routing /adminseguro
+a919cc7 feat: High Luxury Link Bio Professional integration

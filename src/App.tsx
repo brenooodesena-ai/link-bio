@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { db } from './firebase';
-import { collection, addDoc, query, where, getDocs, Timestamp, serverTimestamp, doc, setDoc, getDoc, onSnapshot, deleteDoc, orderBy } from 'firebase/firestore';
+import { supabase } from './supabase';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import {
   Instagram,
@@ -471,8 +470,7 @@ const AdminDashboard: React.FC<{
 
   const fetchAnalytics = async () => {
     try {
-      let q;
-      const clicksRef = collection(db, 'clicks');
+      let query = supabase.from('clicks').select('*');
       const now = new Date();
 
       if (timeRange === 'custom') {
@@ -480,7 +478,7 @@ const AdminDashboard: React.FC<{
         start.setHours(0, 0, 0, 0);
         const end = new Date(selectedDate);
         end.setHours(23, 59, 59, 999);
-        q = query(clicksRef, where('timestamp', '>=', Timestamp.fromDate(start)), where('timestamp', '<=', Timestamp.fromDate(end)));
+        query = query.gte('timestamp', start.toISOString()).lte('timestamp', end.toISOString());
       } else {
         const days = timeRange === 'today' ? 0 : parseInt(timeRange);
         const startDate = new Date();
@@ -489,12 +487,12 @@ const AdminDashboard: React.FC<{
         } else {
           startDate.setDate(now.getDate() - days);
         }
-        q = query(clicksRef, where('timestamp', '>=', Timestamp.fromDate(startDate)));
+        query = query.gte('timestamp', startDate.toISOString());
       }
 
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => doc.data());
-      setAnalyticsData(data);
+      const { data, error } = await query;
+      if (error) throw error;
+      setAnalyticsData(data || []);
     } catch (error) {
       console.error("Erro ao buscar analytics:", error);
     }
@@ -507,18 +505,18 @@ const AdminDashboard: React.FC<{
   const stats = useMemo(() => {
     const filteredData = selectedLinkId === 'all'
       ? analyticsData
-      : analyticsData.filter(d => d.linkId === selectedLinkId);
+      : analyticsData.filter(d => d.link_id === selectedLinkId);
 
     const total = filteredData.length;
     const linkStats = links.map(link => ({
       ...link,
-      periodClicks: analyticsData.filter(d => d.linkId === link.id).length
+      periodClicks: analyticsData.filter(d => d.link_id === link.id).length
     }));
 
     // Horário de Pico
     const hours = new Array(24).fill(0);
     filteredData.forEach(d => {
-      const date = d.timestamp?.toDate ? d.timestamp.toDate() : new Date(d.timestamp);
+      const date = new Date(d.timestamp);
       hours[date.getHours()]++;
     });
 
@@ -834,12 +832,7 @@ const AdminDashboard: React.FC<{
                   </button>
                 </div>
 
-                <div className="admin-stats-group">
-                  <div className="link-count">
-                    <span className="count-value">{link.clicks}</span>
-                    <span className="count-label">CLIQUES</span>
-                  </div>
-                </div>
+
 
                 <div className="admin-buttons-group">
                   <button onClick={() => onEditLink(link)} className="action-btn" title="Editar">
@@ -864,6 +857,8 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [editingLink, setEditingLink] = useState<Partial<LinkItem> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const [profile, setProfile] = useState({
     name: 'Alex Rivera',
     bio: 'Digital Creator & UX Designer',
@@ -872,88 +867,80 @@ const App: React.FC = () => {
   });
   const [links, setLinks] = useState<LinkItem[]>([]);
 
-  // Carregar dados iniciais do Firestore
+  // Carregar dados iniciais do Supabase
   useEffect(() => {
-    let activeUnsubs: (() => void)[] = [];
-
-    const initializeAndSync = async () => {
-      let isInitialSync = true; // Flag local para evitar problemas de closure do React state
-
+    const fetchData = async () => {
       try {
-        console.log("Checando inicialização do banco de dados...");
-        const profileDoc = await getDoc(doc(db, 'config', 'profile'));
+        setLoading(true);
 
-        if (!profileDoc.exists()) {
-          console.log("Banco de dados não encontrado. Iniciando migração/seed...");
+        // 1. Fetch Profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', 'profile')
+          .single();
 
-          // 1. Definir Perfil Inicial
-          const savedProfile = localStorage.getItem('profile');
-          const initialProfile = savedProfile ? JSON.parse(savedProfile) : profile;
-          await setDoc(doc(db, 'config', 'profile'), initialProfile);
-
-          // 2. Definir Links Iniciais (Migração ou Padrão)
-          const savedLinks = localStorage.getItem('links');
-          const initialLinks = savedLinks ? JSON.parse(savedLinks) : [
-            { id: '1', title: 'Instagram', url: 'https://instagram.com', clicks: 854, icon: 'Instagram' },
-            { id: '2', title: 'Twitter / X', url: 'https://twitter.com', clicks: 1205, icon: 'Twitter' },
-            { id: '3', title: 'Portfolio Website', url: '#', clicks: 3420, icon: 'ExternalLink' },
-            { id: '4', title: 'Latest YouTube Video', url: 'https://youtube.com', clicks: 521, icon: 'Youtube' }
-          ];
-
-          for (const l of initialLinks) {
-            await setDoc(doc(db, 'links', l.id), l);
-          }
-
-          // 3. LIMPAR LOCALSTORAGE para evitar re-seeding acidental
-          localStorage.removeItem('profile');
-          localStorage.removeItem('links');
-          console.log("Migração concluída e localStorage limpo.");
-        } else {
-          console.log("Banco de dados já inicializado.");
-          // Opcional: Limpar localStorage mesmo se já inicializado no Firebase
-          localStorage.removeItem('profile');
-          localStorage.removeItem('links');
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError;
         }
 
-        // 4. Iniciar Listeners em tempo real
-        const unsubProfile = onSnapshot(doc(db, 'config', 'profile'), (snapshot) => {
-          if (snapshot.exists()) {
-            setProfile(snapshot.data() as any);
-          }
-        });
-        activeUnsubs.push(unsubProfile);
+        if (profileData) {
+          setProfile({
+            name: profileData.name || 'Alex Rivera',
+            bio: profileData.bio || 'Digital Creator & UX Designer',
+            avatar: profileData.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop',
+            lightEffectColor: profileData.light_effect_color || ''
+          });
+        }
 
-        const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('order', 'asc')), (snapshot) => {
-          if (snapshot.empty && !isInitialSync) {
-            console.log("Detectado lista vazia. Criando link de TESTE...");
-            const testLink = {
-              id: 'link-default-teste', // ID fixo para evitar duplicatas
-              title: 'TESTE',
-              url: '',
-              icon: 'ExternalLink',
-              clicks: 0
-            };
-            setDoc(doc(db, 'links', testLink.id), testLink);
-          } else {
-            const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
-            setLinks(firestoreLinks);
-            setLoading(false);
-            isInitialSync = false; // Pronto, agora qualquer deleção total criará o "TESTE"
-            console.log(`Links atualizados: ${firestoreLinks.length} documentos.`);
-          }
-        });
-        activeUnsubs.push(unsubLinks);
+        // 2. Fetch Links
+        const { data: linksData, error: linksError } = await supabase
+          .from('links')
+          .select('*')
+          .order('order', { ascending: true });
 
-      } catch (error) {
-        console.error("Erro crítico na inicialização do Firebase:", error);
-        setLoading(false); // Liberar a tela mesmo com erro para não travar o usuário
+        if (linksError) throw linksError;
+        
+        // Se o banco estiver vazio, podemos manter alguns links de exemplo ou deixar vazio conforme preferência.
+        // Aqui vamos garantir que os links venham ordenados.
+        setLinks(linksData || []);
+
+      } catch (error: any) {
+        console.error("Erro ao carregar dados do Supabase:", error);
+        setErrorMsg("Erro de conexão: " + (error.message || error));
+      } finally {
+        setLoading(false);
       }
     };
 
-    initializeAndSync();
+    fetchData();
+
+    // 3. Realtime Subscriptions
+    const profileSubscription = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: "id=eq.profile" }, payload => {
+        const newData = payload.new as any;
+        setProfile({
+          name: newData.name || 'Alex Rivera',
+          bio: newData.bio || 'Digital Creator & UX Designer',
+          avatar: newData.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop',
+          lightEffectColor: newData.light_effect_color || ''
+        });
+      })
+      .subscribe();
+
+    const linksSubscription = supabase
+      .channel('links-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'links' }, async () => {
+        // Refresh all links to ensure correct order
+        const { data } = await supabase.from('links').select('*').order('order', { ascending: true });
+        if (data) setLinks(data);
+      })
+      .subscribe();
 
     return () => {
-      activeUnsubs.forEach(unsub => unsub());
+      supabase.removeChannel(profileSubscription);
+      supabase.removeChannel(linksSubscription);
     };
   }, []);
 
@@ -967,14 +954,17 @@ const App: React.FC = () => {
       link.id === id ? { ...link, clicks: link.clicks + 1 } : link
     ));
 
-    // 2. Log to Firestore for "real" global analytics
+    // 2. Log to Supabase for "real" global analytics
     try {
       const link = links.find(l => l.id === id);
-      await addDoc(collection(db, 'clicks'), {
-        linkId: id,
-        linkTitle: link?.title || 'Unknown',
-        timestamp: serverTimestamp()
+      await supabase.from('clicks').insert({
+        link_id: id,
+        link_title: link?.title || 'Unknown'
       });
+      
+      // Also update the link's click count in the links table
+      await supabase.from('links').update({ clicks: (link?.clicks || 0) + 1 }).eq('id', id);
+
     } catch (e) {
       console.error("Erro ao registrar clique:", e);
     }
@@ -982,7 +972,14 @@ const App: React.FC = () => {
 
   const handleUpdateProfile = async (newProfile: any) => {
     try {
-      await setDoc(doc(db, 'config', 'profile'), newProfile);
+      const { error } = await supabase.from('profiles').upsert({
+        id: 'profile',
+        name: newProfile.name,
+        bio: newProfile.bio,
+        avatar: newProfile.avatar,
+        light_effect_color: newProfile.lightEffectColor
+      });
+      if (error) throw error;
       setProfile(newProfile);
     } catch (e) {
       console.error("Erro ao atualizar perfil:", e);
@@ -1002,7 +999,8 @@ const App: React.FC = () => {
     };
 
     try {
-      await setDoc(doc(db, 'links', linkId), finalLink);
+      const { error } = await supabase.from('links').upsert(finalLink);
+      if (error) throw error;
       setEditingLink(null);
     } catch (e) {
       console.error("Erro ao salvar link:", e);
@@ -1013,7 +1011,8 @@ const App: React.FC = () => {
   const handleDeleteLink = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este link?')) {
       try {
-        await deleteDoc(doc(db, 'links', id));
+        const { error } = await supabase.from('links').delete().eq('id', id);
+        if (error) throw error;
       } catch (e) {
         console.error("Erro ao excluir link:", e);
         alert('Erro ao excluir do banco de dados.');
@@ -1033,12 +1032,13 @@ const App: React.FC = () => {
     const targetLink = links[targetIndex];
 
     try {
-      // Swap order values in Firestore
       const currentOrder = currentLink.order ?? currentIndex;
       const targetOrder = targetLink.order ?? targetIndex;
 
-      await setDoc(doc(db, 'links', currentLink.id), { ...currentLink, order: targetOrder });
-      await setDoc(doc(db, 'links', targetLink.id), { ...targetLink, order: currentOrder });
+      const { error: err1 } = await supabase.from('links').update({ order: targetOrder }).eq('id', currentLink.id);
+      const { error: err2 } = await supabase.from('links').update({ order: currentOrder }).eq('id', targetLink.id);
+      
+      if (err1 || err2) throw (err1 || err2);
     } catch (e) {
       console.error("Erro ao reordenar links:", e);
     }
@@ -1053,6 +1053,22 @@ const App: React.FC = () => {
           <div className="mini-icon" style={{ width: '40px', height: '40px', margin: '0 auto 1.5rem', border: '3px solid var(--accent-white)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
           <p style={{ opacity: 0.5, letterSpacing: '2px', fontSize: '0.8rem' }}>CARREGANDO...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="premium-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+        <h2 style={{ marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>Erro de Conexão</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Não foi possível carregar seus dados do banco de dados.</p>
+        <div style={{ background: 'rgba(255,68,68,0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,68,68,0.2)', fontSize: '0.85rem', maxWidth: '400px', wordBreak: 'break-word', color: '#ff4444' }}>
+          {errorMsg}
+        </div>
+        <button onClick={() => window.location.reload()} className="save-btn" style={{ marginTop: '2rem', maxWidth: '200px' }}>
+          TENTAR NOVAMENTE
+        </button>
       </div>
     );
   }

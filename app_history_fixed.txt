@@ -1,0 +1,464 @@
+﻿commit 6238f5498fc4f095b1efde3ea43059493117e9aa
+Author: Jos├® de Sena Moreira Santos <mcpfba03@gmail.com>
+Date:   Thu Mar 5 16:25:03 2026 -0300
+
+    feat: Adiciona configura├º├úo e efeito de luz na bio do perfil
+
+diff --git a/src/App.tsx b/src/App.tsx
+index 1e7c249..4d16abb 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -369,44 +369,84 @@ const ThemeToggle: React.FC<{ theme: 'dark' | 'light', toggle: () => void }> = (
+   </button>
+ );
+ 
+-const PublicProfile: React.FC<{ links: LinkItem[], profile: any, onLinkClick: (id: string) => void }> = ({ links, profile, onLinkClick }) => (
+-  <div style={{ width: '100%', textAlign: 'center', marginTop: '2rem' }}>
+-    <div className="avatar-wrapper">
+-      {profile.avatar ? (
+-        <img src={profile.avatar} alt={profile.name} className="avatar-main" />
+-      ) : (
+-        <div className="avatar-main" style={{ display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', background: 'var(--glass-dark)', border: '2px solid rgba(255,255,255,0.1)' }}>
+-          <span style={{ fontSize: '2rem', fontWeight: 600 }}>{profile.name.charAt(0)}</span>
+-        </div>
++const PublicProfile: React.FC<{ links: LinkItem[], profile: any, onLinkClick: (id: string) => void }> = ({ links, profile, onLinkClick }) => {
++  const effectColor = profile.lightEffectColor;
++
++  return (
++    <div style={{ width: '100%', textAlign: 'center', marginTop: '2rem', position: 'relative', zIndex: 1 }}>
++      {effectColor && (
++        <div
++          style={{
++            position: 'fixed',
++            top: 0,
++            left: 0,
++            right: 0,
++            bottom: 0,
++            background: `radial-gradient(circle at top center, ${effectColor}30 0%, transparent 70%)`,
++            pointerEvents: 'none',
++            zIndex: -1,
++            transition: 'background 0.5s ease',
++          }}
++        />
+       )}
+-    </div>
+-    <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.1rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
+-    <p style={{ color: 'var(--text-secondary)', marginBottom: '2.2rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
+-
+-    <div style={{ width: '100%' }}>
+-      {links.map((link) => (
+-        <a
+-          key={link.id}
+-          href={link.url}
+-          target="_blank"
+-          rel="noopener noreferrer"
+-          className="luxury-button"
+-          onClick={() => onLinkClick(link.id)}
+-        >
+-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+-            {link.icon !== 'Nenhum' && (
+-              <div className="icon">
+-                {ICON_MAP[link.icon] || ICON_MAP['Link']}
+-              </div>
+-            )}
+-            <span>{link.title}</span>
++      <div className="avatar-wrapper">
++        {profile.avatar ? (
++          <img
++            src={profile.avatar}
++            alt={profile.name}
++            className="avatar-main"
++            style={{
++              boxShadow: effectColor ? `0 0 50px ${effectColor}55, 0 0 20px ${effectColor}77` : undefined,
++              borderColor: effectColor ? `${effectColor}99` : undefined,
++              transition: 'box-shadow 0.5s ease, border-color 0.5s ease'
++            }}
++          />
++        ) : (
++          <div
++            className="avatar-main"
++            style={{
++              display: 'flex',
++              alignItems: 'center',
++              justifySelf: 'center',
++              justifyContent: 'center',
++              background: 'var(--glass-dark)',
++              border: `2px solid ${effectColor ? effectColor + '99' : 'rgba(255,255,255,0.1)'}`,
++              boxShadow: effectColor ? `0 0 50px ${effectColor}55, 0 0 20px ${effectColor}77` : undefined,
++              transition: 'box-shadow 0.5s ease, border-color 0.5s ease'
++            }}
++          >
++            <span style={{ fontSize: '2rem', fontWeight: 600 }}>{profile.name.charAt(0)}</span>
+           </div>
+-          <ChevronRight size={18} style={{ opacity: 0.3 }} />
+-        </a>
+-      ))}
++        )}
++      </div>
++      <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.1rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
++      <p style={{ color: 'var(--text-secondary)', marginBottom: '2.2rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
++
++      <div style={{ width: '100%' }}>
++        {links.map((link) => (
++          <a
++            key={link.id}
++            href={link.url}
++            target="_blank"
++            rel="noopener noreferrer"
++            className="luxury-button"
++            onClick={() => onLinkClick(link.id)}
++          >
++            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
++              {link.icon !== 'Nenhum' && (
++                <div className="icon">
++                  {ICON_MAP[link.icon] || ICON_MAP['Link']}
++                </div>
++              )}
++              <span>{link.title}</span>
++            </div>
++            <ChevronRight size={18} style={{ opacity: 0.3 }} />
++          </a>
++        ))}
++      </div>
+     </div>
+-  </div>
+-);
++  );
++};
+ 
+ const AdminDashboard: React.FC<{
+   links: LinkItem[],
+@@ -561,6 +601,86 @@ const AdminDashboard: React.FC<{
+               />
+             </div>
+ 
++            <div>
++              <label style={{ display: 'block', fontSize: '0.8rem', opacity: 0.6, marginBottom: '0.5rem' }}>EFEITO DE LUZ (FUNDO)</label>
++              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--glass-bg)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
++                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
++                  <div style={{ flex: 1 }}>
++                    <p style={{ fontSize: '0.95rem', marginBottom: '2px', fontWeight: 500, fontFamily: 'Outfit, sans-serif' }}>Aura de Destaque</p>
++                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Adiciona um brilho colorido na foto e fundo.</p>
++                  </div>
++                  {localProfile.lightEffectColor ? (
++                    <button
++                      onClick={() => {
++                        const updated = { ...localProfile, lightEffectColor: '' };
++                        setLocalProfile(updated);
++                        onUpdateProfile(updated); // Autosave
++                      }}
++                      style={{
++                        background: 'rgba(255, 68, 68, 0.1)',
++                        color: '#ff4444',
++                        border: '1px solid rgba(255, 68, 68, 0.3)',
++                        padding: '0.5rem 1rem',
++                        borderRadius: '8px',
++                        fontSize: '0.75rem',
++                        fontWeight: 600,
++                        cursor: 'pointer',
++                        transition: 'all 0.2s ease',
++                        fontFamily: 'Outfit, sans-serif'
++                      }}
++                    >
++                      REMOVER
++                    </button>
++                  ) : (
++                    <button
++                      onClick={() => {
++                        const updated = { ...localProfile, lightEffectColor: '#8b5cf6' };
++                        setLocalProfile(updated);
++                        onUpdateProfile(updated); // Autosave
++                      }}
++                      style={{
++                        background: 'var(--accent-white)',
++                        color: 'var(--matte-black)',
++                        border: 'none',
++                        padding: '0.5rem 1rem',
++                        borderRadius: '8px',
++                        fontSize: '0.75rem',
++                        fontWeight: 600,
++                        cursor: 'pointer',
++                        transition: 'all 0.2s ease',
++                        fontFamily: 'Outfit, sans-serif'
++                      }}
++                    >
++                      ATIVAR
++                    </button>
++                  )}
++                </div>
++
++                {localProfile.lightEffectColor && (
++                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
++                    <span style={{ fontSize: '0.85rem' }}>Selecione a cor:</span>
++                    <input
++                      type="color"
++                      value={localProfile.lightEffectColor}
++                      onChange={(e) => setLocalProfile({ ...localProfile, lightEffectColor: e.target.value })}
++                      onBlur={() => onUpdateProfile(localProfile)}
++                      style={{
++                        width: '50px',
++                        height: '40px',
++                        border: 'none',
++                        borderRadius: '8px',
++                        cursor: 'pointer',
++                        background: 'transparent',
++                        padding: 0
++                      }}
++                      title="Clique para escolher a cor"
++                    />
++                    <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: 'auto' }}>A cor salva ao fechar o seletor</span>
++                  </div>
++                )}
++              </div>
++            </div>
++
+             <button onClick={handleSave} className="save-btn" style={{ fontFamily: 'Outfit, sans-serif' }}>
+               SALVAR ALTERA├ç├òES
+             </button>
+@@ -747,7 +867,8 @@ const App: React.FC = () => {
+   const [profile, setProfile] = useState({
+     name: 'Alex Rivera',
+     bio: 'Digital Creator & UX Designer',
+-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop'
++    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&h=200&auto=format&fit=crop',
++    lightEffectColor: ''
+   });
+   const [links, setLinks] = useState<LinkItem[]>([]);
+ 
+
+commit 4b232dc6747818272a611efc3584760bdd843376
+Author: Jos├® de Sena Moreira Santos <mcpfba03@gmail.com>
+Date:   Sat Feb 28 18:32:23 2026 -0300
+
+    Sua mensagem de atualiza├º├úo
+
+diff --git a/src/App.tsx b/src/App.tsx
+index e8d33d1..1e7c249 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -121,6 +121,7 @@ interface LinkItem {
+   url: string;
+   clicks: number;
+   icon: string;
++  order: number;
+ }
+ 
+ // --- COMPONENTS ---
+@@ -236,6 +237,7 @@ const PhotoEditor: React.FC<{
+   const [position, setPosition] = useState({ x: 0, y: 0 });
+   const [isDragging, setIsDragging] = useState(false);
+   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
++  const [imgDim, setImgDim] = useState({ width: 'auto', height: 'auto' });
+   const containerRef = React.useRef<HTMLDivElement>(null);
+   const imgRef = React.useRef<HTMLImageElement>(null);
+ 
+@@ -305,13 +307,19 @@ const PhotoEditor: React.FC<{
+             src={image}
+             alt="To crop"
+             draggable={false}
+-            onLoad={() => {
++            onLoad={(e) => {
+               setPosition({ x: 0, y: 0 });
+               setZoom(1);
++              const { naturalWidth, naturalHeight } = e.currentTarget;
++              if (naturalWidth > naturalHeight) {
++                setImgDim({ width: 'auto', height: '100%' });
++              } else {
++                setImgDim({ width: '100%', height: 'auto' });
++              }
+             }}
+             style={{
+-              width: 'auto',
+-              height: 'auto',
++              width: imgDim.width,
++              height: imgDim.height,
+               maxWidth: 'none',
+               minWidth: '100%',
+               minHeight: '100%',
+@@ -372,8 +380,8 @@ const PublicProfile: React.FC<{ links: LinkItem[], profile: any, onLinkClick: (i
+         </div>
+       )}
+     </div>
+-    <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.6rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
+-    <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
++    <h1 style={{ fontSize: '1.85rem', fontWeight: 600, marginBottom: '0.1rem', letterSpacing: '-0.5px' }}>{profile.name}</h1>
++    <p style={{ color: 'var(--text-secondary)', marginBottom: '2.2rem', fontWeight: 300, fontSize: '1rem' }}>{profile.bio}</p>
+ 
+     <div style={{ width: '100%' }}>
+       {links.map((link) => (
+@@ -407,9 +415,10 @@ const AdminDashboard: React.FC<{
+   onAddLink: () => void,
+   onEditLink: (link: LinkItem) => void,
+   onDeleteLink: (id: string) => void,
++  onMoveLink: (id: string, direction: 'up' | 'down') => void,
+   theme: 'dark' | 'light',
+   toggleTheme: () => void
+-}> = ({ links, profile, onUpdateProfile, onAddLink, onEditLink, onDeleteLink, theme, toggleTheme }) => {
++}> = ({ links, profile, onUpdateProfile, onAddLink, onEditLink, onDeleteLink, onMoveLink, theme, toggleTheme }) => {
+   const [localProfile, setLocalProfile] = useState(profile);
+   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
+   const fileInputRef = React.useRef<HTMLInputElement>(null);
+@@ -627,7 +636,7 @@ const AdminDashboard: React.FC<{
+             <div className="analytics-value" style={{ fontSize: '1.4rem' }}>{stats.peakHour}</div>
+             <div className="analytics-label">Hor├írio mais Quente</div>
+           </div>
+-          <div className="analytics-card">
++          <div className="analytics-card" style={{ padding: '1rem' }}>
+             <div className="analytics-value">{links.reduce((acc, l) => acc + l.clicks, 0).toLocaleString()}</div>
+             <div className="analytics-label">Total Hist├│rico</div>
+           </div>
+@@ -685,27 +694,41 @@ const AdminDashboard: React.FC<{
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+           {links.map((link) => (
+             <div key={link.id} className="admin-link-row">
+-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
++              <div className="admin-link-info">
+                 <div className="admin-link-icon">
+                   {ICON_MAP[link.icon] || ICON_MAP['ExternalLink']}
+                 </div>
+-                <div style={{ flex: 1 }}>
+-                  <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.1rem' }}>{link.title}</div>
+-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.url}</div>
++                <div className="admin-link-text">
++                  <div className="admin-link-title">{link.title}</div>
++                  <div className="admin-link-url">{link.url}</div>
+                 </div>
+               </div>
+ 
+-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+-                <div style={{ textAlign: 'right', marginRight: '1rem' }}>
+-                  <div style={{ color: 'var(--accent-white)', fontWeight: 700, fontSize: '1.1rem' }}>{link.clicks}</div>
+-                  <div style={{ fontSize: '0.65rem', opacity: 0.4 }}>CLIQUES</div>
++              <div className="admin-link-actions-wrapper">
++                <div className="admin-reorder-group">
++                  <button onClick={() => onMoveLink(link.id, 'up')} className="action-btn mini" title="Subir">
++                    <ChevronRight size={14} style={{ transform: 'rotate(-90deg)' }} />
++                  </button>
++                  <button onClick={() => onMoveLink(link.id, 'down')} className="action-btn mini" title="Descer">
++                    <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
++                  </button>
++                </div>
++
++                <div className="admin-stats-group">
++                  <div className="link-count">
++                    <span className="count-value">{link.clicks}</span>
++                    <span className="count-label">CLIQUES</span>
++                  </div>
++                </div>
++
++                <div className="admin-buttons-group">
++                  <button onClick={() => onEditLink(link)} className="action-btn" title="Editar">
++                    <Pencil size={16} />
++                  </button>
++                  <button onClick={() => onDeleteLink(link.id)} className="action-btn delete" title="Excluir">
++                    <Trash2 size={16} />
++                  </button>
+                 </div>
+-                <button onClick={() => onEditLink(link)} className="action-btn" title="Editar">
+-                  <Pencil size={16} />
+-                </button>
+-                <button onClick={() => onDeleteLink(link.id)} className="action-btn delete" title="Excluir">
+-                  <Trash2 size={16} />
+-                </button>
+               </div>
+             </div>
+           ))}
+@@ -779,7 +802,7 @@ const App: React.FC = () => {
+         });
+         activeUnsubs.push(unsubProfile);
+ 
+-        const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
++        const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('order', 'asc')), (snapshot) => {
+           if (snapshot.empty && !isInitialSync) {
+             console.log("Detectado lista vazia. Criando link de TESTE...");
+             const testLink = {
+@@ -853,7 +876,8 @@ const App: React.FC = () => {
+       title: linkData.title || '',
+       url: linkData.url || '',
+       icon: linkData.icon || 'ExternalLink',
+-      clicks: linkData.clicks || 0
++      clicks: linkData.clicks || 0,
++      order: linkData.order ?? links.length
+     };
+ 
+     try {
+@@ -876,6 +900,29 @@ const App: React.FC = () => {
+     }
+   };
+ 
++  const handleMoveLink = async (id: string, direction: 'up' | 'down') => {
++    const currentIndex = links.findIndex(l => l.id === id);
++    if (currentIndex === -1) return;
++
++    if (direction === 'up' && currentIndex === 0) return;
++    if (direction === 'down' && currentIndex === links.length - 1) return;
++
++    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
++    const currentLink = links[currentIndex];
++    const targetLink = links[targetIndex];
++
++    try {
++      // Swap order values in Firestore
++      const currentOrder = currentLink.order ?? currentIndex;
++      const targetOrder = targetLink.order ?? targetIndex;
++
++      await setDoc(doc(db, 'links', currentLink.id), { ...currentLink, order: targetOrder });
++      await setDoc(doc(db, 'links', targetLink.id), { ...targetLink, order: currentOrder });
++    } catch (e) {
++      console.error("Erro ao reordenar links:", e);
++    }
++  };
++
+   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+ 
+   if (loading) {
+@@ -913,6 +960,7 @@ const App: React.FC = () => {
+                 onAddLink={() => setEditingLink({})}
+                 onEditLink={setEditingLink}
+                 onDeleteLink={handleDeleteLink}
++                onMoveLink={handleMoveLink}
+                 theme={theme}
+                 toggleTheme={toggleTheme}
+               />
+
+commit 62f8bef6c7543d4b06fcdd9da74d753684aa74bd
+Author: Jos├® de Sena Moreira Santos <mcpfba03@gmail.com>
+Date:   Wed Feb 25 04:08:58 2026 -0300
+
+    fix: resolve closure bug in links listener and use fixed ID for placeholder
+
+diff --git a/src/App.tsx b/src/App.tsx
+index 19760a2..e8d33d1 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -733,6 +733,8 @@ const App: React.FC = () => {
+     let activeUnsubs: (() => void)[] = [];
+ 
+     const initializeAndSync = async () => {
++      let isInitialSync = true; // Flag local para evitar problemas de closure do React state
++
+       try {
+         console.log("Checando inicializa├º├úo do banco de dados...");
+         const profileDoc = await getDoc(doc(db, 'config', 'profile'));
+@@ -778,10 +780,10 @@ const App: React.FC = () => {
+         activeUnsubs.push(unsubProfile);
+ 
+         const unsubLinks = onSnapshot(query(collection(db, 'links'), orderBy('id', 'asc')), (snapshot) => {
+-          if (snapshot.empty && !loading) {
+-            // Se estiver vazio e n├úo for o carregamento inicial, cria o link de teste
++          if (snapshot.empty && !isInitialSync) {
++            console.log("Detectado lista vazia. Criando link de TESTE...");
+             const testLink = {
+-              id: 'teste-' + Date.now(),
++              id: 'link-default-teste', // ID fixo para evitar duplicatas
+               title: 'TESTE',
+               url: '',
+               icon: 'ExternalLink',
+@@ -792,6 +794,7 @@ const App: React.FC = () => {
+             const firestoreLinks = snapshot.docs.map(doc => ({ ...doc.data() } as LinkItem));
+             setLinks(firestoreLinks);
+             setLoading(false);
++            isInitialSync = false; // Pronto, agora qualquer dele├º├úo total criar├í o "TESTE"
+             console.log(`Links atualizados: ${firestoreLinks.length} documentos.`);
+           }
+         });

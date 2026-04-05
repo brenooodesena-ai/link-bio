@@ -1,0 +1,27 @@
+﻿commit 1c59ead608fb5b90c265d11e91d8c95a7e12fdbe
+Author: Jos├® de Sena Moreira Santos <mcpfba03@gmail.com>
+Date:   Wed Feb 25 02:41:46 2026 -0300
+
+    feat: implement individual link analytics and url validation with firebase
+
+diff --git a/src/firebase.ts b/src/firebase.ts
+new file mode 100644
+index 0000000..5be8a9c
+--- /dev/null
++++ b/src/firebase.ts
+@@ -0,0 +1,15 @@
++import { initializeApp } from "firebase/app";
++import { getFirestore } from "firebase/firestore";
++
++const firebaseConfig = {
++    apiKey: "AIzaSyA8tReweL3VMhP3VsHZvbDXDIRn9OEL1Lg",
++    authDomain: "link-bio-19b68.firebaseapp.com",
++    projectId: "link-bio-19b68",
++    storageBucket: "link-bio-19b68.firebasestorage.app",
++    messagingSenderId: "676208700982",
++    appId: "1:676208700982:web:8522aadba0cdf13548b297",
++    measurementId: "G-QQYLHK84RE"
++};
++
++const app = initializeApp(firebaseConfig);
++export const db = getFirestore(app);
