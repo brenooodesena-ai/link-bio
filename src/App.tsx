@@ -113,6 +113,70 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Link: <ExternalLink size={22} />
 };
 
+// --- AUTH COMPONENT ---
+
+const PasscodeAuth: React.FC<{ onAuth: () => void }> = ({ onAuth }) => {
+  const [passcode, setPasscode] = useState('');
+  const [isError, setIsError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const correctPasscode = (import.meta.env.VITE_ADMIN_PASSWORD || 'admin123').toLowerCase().trim();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Pequena demora para simular verificação e melhorar UX
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    if (passcode.toLowerCase().trim() === correctPasscode) {
+      onAuth();
+    } else {
+      setIsError(true);
+      setTimeout(() => setIsError(false), 500);
+      setPasscode('');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="premium-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+      <div className="glass-card" style={{ maxWidth: '360px', padding: '2.5rem', textAlign: 'center', animation: isError ? 'shake 0.4s ease' : 'none' }}>
+        <div style={{ background: 'var(--glass-dark)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', border: '1px solid var(--glass-border)' }}>
+          <Moon size={24} style={{ opacity: 0.5 }} />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', fontFamily: 'Outfit, sans-serif' }}>Acesso Restrito</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>Digite a senha de administrador para continuar.</p>
+        
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            autoFocus
+            placeholder="••••••••"
+            value={passcode}
+            onChange={(e) => setPasscode(e.target.value)}
+            className={`glass-input ${isError ? 'error' : ''}`}
+            style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '4px', marginBottom: '1.5rem' }}
+          />
+          <button type="submit" className="save-btn" style={{ marginTop: 0, position: 'relative' }} disabled={isLoading}>
+            {isLoading ? 'VERIFICANDO...' : 'ENTRAR NO PAINEL'}
+          </button>
+        </form>
+        
+        {isError && <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '1rem', fontWeight: 500 }}>Senha incorreta. Tente novamente.</p>}
+      </div>
+      
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          75% { transform: translateX(8px); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+
 // Shared Interface
 interface LinkItem {
   id: string;
@@ -866,6 +930,14 @@ const App: React.FC = () => {
     lightEffectColor: ''
   });
   const [links, setLinks] = useState<LinkItem[]>([]);
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    return localStorage.getItem('isAdminAuth') === 'true';
+  });
+
+  const handleLogin = () => {
+    setIsAuthorized(true);
+    localStorage.setItem('isAdminAuth', 'true');
+  };
 
   // Carregar dados iniciais do Supabase
   useEffect(() => {
@@ -1090,17 +1162,21 @@ const App: React.FC = () => {
           <Route
             path="/adminseguro"
             element={
-              <AdminDashboard
-                links={links}
-                profile={profile}
-                onUpdateProfile={handleUpdateProfile}
-                onAddLink={() => setEditingLink({})}
-                onEditLink={setEditingLink}
-                onDeleteLink={handleDeleteLink}
-                onMoveLink={handleMoveLink}
-                theme={theme}
-                toggleTheme={toggleTheme}
-              />
+              isAuthorized ? (
+                <AdminDashboard
+                  links={links}
+                  profile={profile}
+                  onUpdateProfile={handleUpdateProfile}
+                  onAddLink={() => setEditingLink({})}
+                  onEditLink={setEditingLink}
+                  onDeleteLink={handleDeleteLink}
+                  onMoveLink={handleMoveLink}
+                  theme={theme}
+                  toggleTheme={toggleTheme}
+                />
+              ) : (
+                <PasscodeAuth onAuth={handleLogin} />
+              )
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
